@@ -3,9 +3,7 @@
 replicaCount: 1
 
 image:
-  # TODO: AWS_ACCOUNT_ID를 실제 값으로 교체
-  repository: "<AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/billage-be"
-  tag: "latest"
+  tag: "latest"  # CI가 commit sha로 업데이트
 
 resources:
   requests:
