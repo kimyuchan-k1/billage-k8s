@@ -37,8 +37,8 @@
 | ✅ | ECR 이미지 URL 설정 | `charts/*/values.yaml`에 ECR 주소 반영 |
 | ✅ | CI 템플릿 작성 | `ci-templates/`에 frontend, backend, ai용 GitHub Actions 작성 |
 | ✅ | ArgoCD Application manifest | `argocd/`에 AppProject, ApplicationSet 작성 |
-| ⬜ | manifest 레포 GitHub push | 이 레포를 GitHub에 올리기 |
-| ⬜ | ArgoCD repoURL 수정 | `argocd/apps/*.yaml`의 `repoURL`을 실제 GitHub 주소로 변경 |
+| ✅ | manifest 레포 GitHub push | https://github.com/kimyuchan-k1/billage-k8s |
+| ✅ | ArgoCD repoURL 수정 | `argocd/apps/*.yaml`의 `repoURL` 반영 완료 |
 | ⬜ | 소스 레포에 CI workflow 복사 | `ci-templates/*/`를 각 소스 레포의 `.github/workflows/`에 복사 |
 | ⬜ | GitHub Secrets 설정 | 각 소스 레포에 `MANIFEST_REPO_PAT`, `AWS_OIDC_ROLE_ARN`, `DISCORD_WEBHOOK` 등록 |
 | ⬜ | PAT 생성 | manifest 레포에 push 권한 있는 Fine-grained PAT 생성 |

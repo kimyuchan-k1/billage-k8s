@@ -7,7 +7,7 @@ spec:
   description: Billage Application Project
 
   sourceRepos:
-    - 'https://github.com/your-org/billage-k8s-manifests.git'  # TODO: 실제 repo URL로 변경
+    - 'https://github.com/kimyuchan-k1/billage-k8s.git'
 
   destinations:
     - namespace: billage-dev

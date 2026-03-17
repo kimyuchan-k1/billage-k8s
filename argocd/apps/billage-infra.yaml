@@ -11,7 +11,7 @@ metadata:
 spec:
   project: billage
   source:
-    repoURL: 'https://github.com/your-org/billage-k8s-manifests.git'  # TODO: 실제 repo URL로 변경
+    repoURL: 'https://github.com/kimyuchan-k1/billage-k8s.git'
     targetRevision: main
     path: base
     directory:
