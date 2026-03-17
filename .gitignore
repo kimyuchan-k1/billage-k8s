@@ -1,0 +1,16 @@
+# Helm
+charts/*/charts/
+*.tgz
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets (절대 커밋 금지)
+*-secret.yaml
+secrets/
