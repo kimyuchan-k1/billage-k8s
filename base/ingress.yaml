@@ -1,0 +1,76 @@
+# Billage Ingress 라우팅 규칙
+# A(클러스터 플랫폼)가 ingress-nginx 설치 후 적용
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: billage-ingress
+  namespace: village-app
+  annotations:
+    # Ingress Controller 지정
+    kubernetes.io/ingress.class: nginx
+
+    # SSL 리다이렉트
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+    # 파일 업로드 (이미지)
+    nginx.ingress.kubernetes.io/proxy-body-size: "20m"
+
+    # WebSocket 지원 — /ws/* 경로용
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+
+    # WebSocket upgrade header
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
+spec:
+  tls:
+    - hosts:
+        - billages.com
+        - api.billages.com
+      secretName: billage-tls
+  rules:
+    # 프론트엔드: billages.com → Next.js
+    - host: billages.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: nextjs
+                port:
+                  number: 3000
+
+    # API: api.billages.com → 서비스별 라우팅
+    - host: api.billages.com
+      http:
+        paths:
+          # REST API → Spring Boot
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: spring-boot
+                port:
+                  number: 8080
+
+          # WebSocket (채팅/알림) → Spring Boot
+          # nginx annotation에서 upgrade header 처리
+          - path: /ws
+            pathType: Prefix
+            backend:
+              service:
+                name: spring-boot
+                port:
+                  number: 8080
+
+          # AI API → FastAPI
+          - path: /ai
+            pathType: Prefix
+            backend:
+              service:
+                name: fastapi
+                port:
+                  number: 5000

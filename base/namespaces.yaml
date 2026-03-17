@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: village-app
+  labels:
+    purpose: application
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: village-data
+  labels:
+    purpose: stateful-data
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: village-edge
+  labels:
+    purpose: ingress-tls
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: village-ops
+  labels:
+    purpose: monitoring-gitops
