@@ -1,0 +1,25 @@
+replicaCount: 1
+
+image:
+  repository: qdrant/qdrant
+  tag: "v1.8.0"
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "2Gi"
+  limits:
+    cpu: "1000m"
+    memory: "4Gi"
+
+persistence:
+  storageClass: gp3
+  size: 30Gi
+
+backup:
+  enabled: true
+  schedule: "0 3 * * 0"  # 매주 일요일 03:00
+  image: amazon/aws-cli:2.15.0
+  s3Bucket: ""     # TODO: S3 버킷 이름
+  s3Prefix: "qdrant-backups"

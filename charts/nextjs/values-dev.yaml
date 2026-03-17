@@ -1,0 +1,29 @@
+# Next.js - Dev 환경
+
+replicaCount: 1
+
+image:
+  repository: "<AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/billage-fe"
+  tag: "latest"
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+hpa:
+  enabled: false
+
+pdb:
+  enabled: false
+
+env:
+  - name: NEXT_PUBLIC_API_URL
+    value: "https://dev-api.billages.com"
+  - name: NEXTAUTH_URL
+    value: "https://dev.billages.com"
+  - name: AUTH_TRUST_HOST
+    value: "true"

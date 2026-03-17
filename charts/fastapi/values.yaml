@@ -1,0 +1,49 @@
+replicaCount: 2
+
+image:
+  repository: "988319239270.dkr.ecr.ap-northeast-2.amazonaws.com/billage-ai"
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 5000
+  targetPort: 5000
+
+resources:
+  requests:
+    cpu: "300m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+
+strategy:
+  maxSurge: "50%"
+  maxUnavailable: "25%"
+
+probes:
+  readiness:
+    path: /ai/health
+    initialDelaySeconds: 15
+    periodSeconds: 15
+    failureThreshold: 3
+  liveness:
+    path: /ai/health
+    initialDelaySeconds: 30
+    periodSeconds: 15
+    failureThreshold: 3
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPU: 50
+  scaleDownStabilization: 300
+
+pdb:
+  enabled: true
+  minAvailable: "50%"
+
+env: []
+envFromSecret: []

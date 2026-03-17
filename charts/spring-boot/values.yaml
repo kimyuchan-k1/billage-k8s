@@ -1,0 +1,65 @@
+# Spring Boot 기본 values (dev/prod 공통 기본값)
+
+replicaCount: 3
+
+image:
+  repository: "988319239270.dkr.ecr.ap-northeast-2.amazonaws.com/billage-be"
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+resources:
+  requests:
+    cpu: "750m"
+    memory: "1Gi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
+strategy:
+  maxSurge: "25%"
+  maxUnavailable: 0
+
+probes:
+  startup:
+    enabled: true
+    path: /actuator/health
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 30    # 10s + 5s × 30 = 최대 160초 허용
+  readiness:
+    path: /actuator/health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    failureThreshold: 3
+  liveness:
+    path: /actuator/health
+    initialDelaySeconds: 5
+    periodSeconds: 20
+    failureThreshold: 3
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPU: 70
+  scaleDownStabilization: 300
+
+pdb:
+  enabled: true
+  minAvailable: "66%"
+
+# 일반 환경변수 (ConfigMap 수준)
+env: []
+
+# Secret에서 읽어올 환경변수
+envFromSecret: []
+
+# SSM Parameter Store 경로 (기존 v2와 동일)
+# /billage/{env}/be/ 하위 파라미터를 K8s Secret으로 동기화
+# 현재: 수동으로 Secret 생성 → 추후 ExternalSecrets Operator로 자동화
+ssmPath: "/billage/prod/be/"

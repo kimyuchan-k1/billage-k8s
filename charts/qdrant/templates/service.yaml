@@ -1,0 +1,40 @@
+# Headless Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "qdrant.fullname" . }}-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "qdrant.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - name: rest
+      port: 6333
+      targetPort: 6333
+    - name: grpc
+      port: 6334
+      targetPort: 6334
+  selector:
+    {{- include "qdrant.selectorLabels" . | nindent 4 }}
+---
+# Client Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "qdrant.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "qdrant.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - name: rest
+      port: 6333
+      targetPort: 6333
+    - name: grpc
+      port: 6334
+      targetPort: 6334
+  selector:
+    {{- include "qdrant.selectorLabels" . | nindent 4 }}

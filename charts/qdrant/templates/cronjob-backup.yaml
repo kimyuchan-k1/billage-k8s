@@ -1,0 +1,69 @@
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "qdrant.fullname" . }}-backup
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "qdrant.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: {{ .Values.backup.image }}
+              env:
+                - name: QDRANT_URL
+                  value: "http://{{ include "qdrant.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:6333"
+                - name: S3_BUCKET
+                  value: {{ .Values.backup.s3Bucket }}
+                - name: S3_PREFIX
+                  value: {{ .Values.backup.s3Prefix }}
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+
+                  echo "=== Qdrant Backup Start: $TIMESTAMP ==="
+
+                  # 모든 collection 목록 조회
+                  COLLECTIONS=$(curl -s "$QDRANT_URL/collections" | python3 -c "
+                  import sys, json
+                  data = json.load(sys.stdin)
+                  for c in data['result']['collections']:
+                      print(c['name'])
+                  ")
+
+                  for COLLECTION in $COLLECTIONS; do
+                    echo "Snapshot: $COLLECTION"
+
+                    # 스냅샷 생성
+                    SNAPSHOT=$(curl -s -X POST "$QDRANT_URL/collections/$COLLECTION/snapshots" | python3 -c "
+                    import sys, json
+                    print(json.load(sys.stdin)['result']['name'])
+                    ")
+
+                    # 스냅샷 다운로드
+                    curl -s -o "/tmp/$SNAPSHOT" "$QDRANT_URL/collections/$COLLECTION/snapshots/$SNAPSHOT"
+
+                    # S3 업로드
+                    aws s3 cp "/tmp/$SNAPSHOT" "s3://$S3_BUCKET/$S3_PREFIX/$COLLECTION/$TIMESTAMP/$SNAPSHOT"
+
+                    echo "Uploaded: s3://$S3_BUCKET/$S3_PREFIX/$COLLECTION/$TIMESTAMP/$SNAPSHOT"
+
+                    # 임시 파일 정리
+                    rm -f "/tmp/$SNAPSHOT"
+                  done
+
+                  echo "=== Backup Complete ==="
+{{- end }}

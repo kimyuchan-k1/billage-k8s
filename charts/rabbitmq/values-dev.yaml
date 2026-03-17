@@ -1,0 +1,18 @@
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "512Mi"
+  limits:
+    cpu: "500m"
+    memory: "1Gi"
+
+persistence:
+  size: 10Gi
+
+config:
+  memoryHighWatermark: 600MiB
+
+pdb:
+  enabled: false

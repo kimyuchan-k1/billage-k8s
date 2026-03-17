@@ -1,0 +1,18 @@
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "2Gi"
+  limits:
+    cpu: "1000m"
+    memory: "4Gi"
+
+persistence:
+  size: 30Gi
+
+backup:
+  enabled: true
+  schedule: "0 3 * * 0"
+  s3Bucket: ""  # TODO: prod S3 버킷
+  s3Prefix: "qdrant-backups"

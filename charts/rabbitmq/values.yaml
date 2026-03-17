@@ -1,0 +1,26 @@
+replicaCount: 3
+
+image:
+  repository: rabbitmq
+  tag: "3.13-management"
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    cpu: "250m"
+    memory: "1Gi"
+  limits:
+    cpu: "500m"
+    memory: "1.5Gi"
+
+persistence:
+  storageClass: gp3
+  size: 20Gi
+
+config:
+  memoryHighWatermark: 900MiB  # limit(1.5Gi)의 60%
+  diskFreeLimit: 2GiB
+
+pdb:
+  enabled: true
+  minAvailable: "66%"

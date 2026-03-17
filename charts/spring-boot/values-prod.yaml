@@ -1,0 +1,58 @@
+# Spring Boot - Prod 환경
+
+replicaCount: 3
+
+image:
+  # TODO: AWS_ACCOUNT_ID를 실제 값으로 교체
+  repository: "<AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/billage-be"
+  tag: "latest"
+
+resources:
+  requests:
+    cpu: "750m"
+    memory: "1Gi"
+  limits:
+    cpu: "2000m"
+    memory: "2Gi"
+
+probes:
+  startup:
+    enabled: true
+    failureThreshold: 30
+
+hpa:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPU: 70
+  scaleDownStabilization: 300
+
+pdb:
+  enabled: true
+  minAvailable: "66%"
+
+env:
+  - name: SPRING_PROFILES_ACTIVE
+    value: "prod"
+
+envFromSecret:
+  - name: DB_URL
+    secretName: spring-boot-secret
+    key: db-url
+  - name: DB_USERNAME
+    secretName: spring-boot-secret
+    key: db-username
+  - name: DB_PASSWORD
+    secretName: spring-boot-secret
+    key: db-password
+  - name: JWT_SECRET
+    secretName: spring-boot-secret
+    key: jwt-secret
+  - name: CORS_ALLOWED
+    secretName: spring-boot-secret
+    key: cors-allowed
+  - name: AI_BASE_URL
+    secretName: spring-boot-secret
+    key: ai-base-url
+
+ssmPath: "/billage/prod/be/"

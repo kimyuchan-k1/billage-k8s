@@ -1,0 +1,25 @@
+# FastAPI - Dev 환경
+
+replicaCount: 1
+
+image:
+  repository: "<AWS_ACCOUNT_ID>.dkr.ecr.ap-northeast-2.amazonaws.com/billage-ai"
+  tag: "latest"
+
+resources:
+  requests:
+    cpu: "200m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+hpa:
+  enabled: false
+
+pdb:
+  enabled: false
+
+env:
+  - name: ENV
+    value: "dev"
