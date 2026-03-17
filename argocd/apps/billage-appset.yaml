@@ -1,0 +1,69 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: billage-apps
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - list:
+              elements:
+                - chart: spring-boot
+                  service: api
+                - chart: nextjs
+                  service: web
+                - chart: fastapi
+                  service: ai
+                - chart: rabbitmq
+                  service: mq
+                - chart: qdrant
+                  service: vectordb
+          - list:
+              elements:
+                - env: dev
+                  branch: develop
+                  autoSync: true
+                - env: prod
+                  branch: main
+                  autoSync: false
+
+  template:
+    metadata:
+      name: 'billage-{{.service}}-{{.env}}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/part-of: billage
+        environment: '{{.env}}'
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: billage
+      source:
+        repoURL: 'https://github.com/your-org/billage-k8s-manifests.git'  # TODO: 실제 repo URL로 변경
+        targetRevision: '{{.branch}}'
+        path: 'charts/{{.chart}}'
+        helm:
+          valueFiles:
+            - 'values.yaml'
+            - 'values-{{.env}}.yaml'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: 'billage-{{.env}}'
+      syncPolicy:
+        automated:
+          prune: '{{.autoSync}}'
+          selfHeal: '{{.autoSync}}'
+        syncOptions:
+          - CreateNamespace=false
+          - PruneLast=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      revisionHistoryLimit: 5

@@ -1,0 +1,52 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: billage
+  namespace: argocd
+spec:
+  description: Billage Application Project
+
+  sourceRepos:
+    - 'https://github.com/your-org/billage-k8s-manifests.git'  # TODO: 실제 repo URL로 변경
+
+  destinations:
+    - namespace: billage-dev
+      server: https://kubernetes.default.svc
+    - namespace: billage-prod
+      server: https://kubernetes.default.svc
+
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: networking.k8s.io
+      kind: NetworkPolicy
+
+  namespaceResourceWhitelist:
+    - group: ''
+      kind: '*'
+    - group: apps
+      kind: '*'
+    - group: autoscaling
+      kind: '*'
+    - group: batch
+      kind: '*'
+    - group: networking.k8s.io
+      kind: '*'
+    - group: policy
+      kind: '*'
+
+  roles:
+    - name: developer
+      description: Developer access
+      policies:
+        - p, proj:billage:developer, applications, get, billage/*, allow
+        - p, proj:billage:developer, applications, sync, billage/*-dev, allow
+      groups:
+        - developers
+
+    - name: admin
+      description: Admin access
+      policies:
+        - p, proj:billage:admin, applications, *, billage/*, allow
+      groups:
+        - admins
