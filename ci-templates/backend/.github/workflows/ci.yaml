@@ -1,0 +1,121 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'ktb-billage-*/src/**'
+      - 'ktb-billage-*/build.gradle'
+      - '**/build.gradle*'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'gradle/**'
+      - 'Dockerfile'
+
+env:
+  JAVA_VERSION: '25'
+
+jobs:
+  build-and-test:
+    name: Build & Unit Test
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: testdb
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Lint Analysis
+        run: ./gradlew checkstyleMain --no-daemon
+
+      - name: Build
+        run: ./gradlew build -x test --no-daemon
+
+      - name: Unit Test
+        env:
+          LOCAL_DB_URL: jdbc:mysql://localhost:3306/testdb
+          LOCAL_DB_USERNAME: root
+          LOCAL_DB_PASSWORD: test
+          CORS_ALLOWED_ORIGIN: "http://localhost:3000"
+          JWT_SECRET_KEY: "test-secret-key-for-ci-pipeline-do-not-use-in-production"
+          ACCESS_DURATION: "3600000"
+          REFRESH_DURATION: "604800000"
+        run: ./gradlew test --no-daemon
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: '**/build/reports/tests/'
+          retention-days: 7
+
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: github.base_ref == 'main'
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test
+          MYSQL_DATABASE: testdb
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Run Integration Tests
+        env:
+          LOCAL_DB_URL: jdbc:mysql://localhost:3306/testdb
+          LOCAL_DB_USERNAME: root
+          LOCAL_DB_PASSWORD: test
+          CORS_ALLOWED_ORIGIN: "http://localhost:3000"
+          JWT_SECRET_KEY: "test-secret-key-for-ci-pipeline-do-not-use-in-production"
+          ACCESS_DURATION: "3600000"
+          REFRESH_DURATION: "604800000"
+        run: ./gradlew integrationTest --no-daemon
+
+      - name: Upload Integration Test Results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: integration-test-results
+          path: '**/build/reports/tests/integrationTest/'
+          retention-days: 7

@@ -1,0 +1,135 @@
+name: Frontend Prod CD (Docker + ECR + ArgoCD)
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - 'docs/**'
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: billage-fe
+  MANIFEST_REPO: your-org/billage-k8s-manifests  # TODO: 실제 레포로 변경
+
+# ============================================================
+# 배포 흐름 (K8s + ArgoCD):
+# 1. Docker 빌드 → ECR에 이미지 Push
+# 2. manifest 레포의 이미지 태그 업데이트
+# 3. ArgoCD에서 수동 Sync 필요 (prod는 auto-sync 비활성화)
+# ============================================================
+
+jobs:
+  # ============================================================
+  # Job 1: Docker 빌드 & ECR Push
+  # ============================================================
+  build-and-push:
+    name: Build & Push to ECR
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate Image Metadata
+        id: meta
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          echo "version=${SHORT_SHA}" >> $GITHUB_OUTPUT
+          echo "full-image=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${SHORT_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.meta.outputs.version }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:prod-latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          build-args: |
+            NEXT_PUBLIC_API_URL=${{ secrets.PROD_NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_IMAGE_HOSTNAME=${{ secrets.PROD_NEXT_PUBLIC_IMAGE_HOSTNAME }}
+            NEXT_PUBLIC_FIREBASE_API_KEY=${{ secrets.PROD_NEXT_PUBLIC_FIREBASE_API_KEY }}
+            NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${{ secrets.PROD_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+            NEXT_PUBLIC_FIREBASE_PROJECT_ID=${{ secrets.PROD_NEXT_PUBLIC_FIREBASE_PROJECT_ID }}
+            NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=${{ secrets.PROD_NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+            NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=${{ secrets.PROD_NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+            NEXT_PUBLIC_FIREBASE_APP_ID=${{ secrets.PROD_NEXT_PUBLIC_FIREBASE_APP_ID }}
+            NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=${{ secrets.PROD_NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID }}
+            NEXT_PUBLIC_FIREBASE_VAPID_KEY=${{ secrets.PROD_NEXT_PUBLIC_FIREBASE_VAPID_KEY }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          provenance: false
+
+      - name: Trigger ECR Scan
+        continue-on-error: true
+        run: |
+          aws ecr start-image-scan \
+            --repository-name ${{ env.ECR_REPOSITORY }} \
+            --image-id imageTag=${{ steps.meta.outputs.version }}
+
+  # ============================================================
+  # Job 2: Update Manifest Repo
+  # ============================================================
+  update-manifest:
+    name: Update K8s Manifest
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Checkout Manifest Repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.MANIFEST_REPO }}
+          token: ${{ secrets.MANIFEST_REPO_PAT }}
+          ref: main
+
+      - name: Update Image Tag
+        run: |
+          cd charts/nextjs
+
+          # values-prod.yaml에서 이미지 태그 업데이트
+          sed -i "s/tag: .*/tag: \"${{ needs.build-and-push.outputs.image-tag }}\"/" values-prod.yaml
+
+          echo "📝 Updated image tag to: ${{ needs.build-and-push.outputs.image-tag }}"
+          cat values-prod.yaml | grep -A2 "image:"
+
+      - name: Commit and Push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add charts/nextjs/values-prod.yaml
+          git commit -m "chore(fe): update prod image to ${{ needs.build-and-push.outputs.image-tag }}
+
+          Source commit: ${{ github.repository }}@${{ github.sha }}"
+
+          git push
+
+      - name: Discord - Ready for Deploy
+        run: |
+          curl -H "Content-Type: application/json" -X POST \
+            -d '{"embeds": [{"title": "📦 [PROD] Frontend 이미지 준비 완료", "color": 16776960, "fields": [{"name": "Image Tag", "value": "`${{ needs.build-and-push.outputs.image-tag }}`", "inline": true}, {"name": "다음 단계", "value": "ArgoCD에서 수동 Sync 필요", "inline": true}]}]}' \
+            ${{ secrets.DISCORD_WEBHOOK }} || true
