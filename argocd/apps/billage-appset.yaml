@@ -59,8 +59,8 @@ spec:
         namespace: '{{.targetNamespace}}'
       syncPolicy:
         automated:
-          prune: '{{.autoSync}}'
-          selfHeal: '{{.autoSync}}'
+          prune: {{.autoSync}}
+          selfHeal: {{.autoSync}}
         syncOptions:
           - CreateNamespace=false
           - PruneLast=true
