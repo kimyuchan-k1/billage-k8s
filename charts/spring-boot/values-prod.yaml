@@ -41,15 +41,15 @@ envFromSecret:
     secretName: spring-boot-secret
     key: logging-level
   # DB
-  - name: PROD_DB_URL
+  - name: DEV_DB_URL
     secretName: spring-boot-secret
-    key: prod-db-url
-  - name: PROD_DB_USERNAME
+    key: dev-db-url
+  - name: DEV_DB_USERNAME
     secretName: spring-boot-secret
-    key: prod-db-username
-  - name: PROD_DB_PASSWORD
+    key: dev-db-username
+  - name: DEV_DB_PASSWORD
     secretName: spring-boot-secret
-    key: prod-db-password
+    key: dev-db-password
   # Auth
   - name: JWT_SECRET_KEY
     secretName: spring-boot-secret
@@ -65,12 +65,12 @@ envFromSecret:
     secretName: spring-boot-secret
     key: cors-allowed-origin
   # AI
-  - name: PROD_AI_BASE_URL
+  - name: DEV_AI_BASE_URL
     secretName: spring-boot-secret
-    key: prod-ai-base-url
-  - name: PROD_AI_TIMEOUT_SECONDS
+    key: dev-ai-base-url
+  - name: DEV_AI_TIMEOUT_SECONDS
     secretName: spring-boot-secret
-    key: prod-ai-timeout-seconds
+    key: dev-ai-timeout-seconds
   # RabbitMQ
   - name: RABBITMQ_ENABLED
     secretName: spring-boot-secret
