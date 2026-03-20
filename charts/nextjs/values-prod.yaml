@@ -33,6 +33,12 @@ envFromSecret:
   - name: NEXTAUTH_URL
     secretName: nextjs-secret
     key: nextauth-url
+  - name: NEXTAUTH_SECRET
+    secretName: nextjs-secret
+    key: nextauth-secret
   - name: AUTH_TRUST_HOST
     secretName: nextjs-secret
     key: auth-trust-host
+  - name: NODE_ENV
+    secretName: nextjs-secret
+    key: node-env
