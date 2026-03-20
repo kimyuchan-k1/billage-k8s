@@ -36,20 +36,24 @@ envFromSecret:
   - name: SPRING_PROFILES_ACTIVE
     secretName: spring-boot-secret
     key: spring-profiles-active
+  # Logging
+  - name: LOGGING_LEVEL
+    secretName: spring-boot-secret
+    key: logging-level
   # DB
-  - name: DB_URL
+  - name: PROD_DB_URL
     secretName: spring-boot-secret
-    key: db-url
-  - name: DB_USERNAME
+    key: prod-db-url
+  - name: PROD_DB_USERNAME
     secretName: spring-boot-secret
-    key: db-username
-  - name: DB_PASSWORD
+    key: prod-db-username
+  - name: PROD_DB_PASSWORD
     secretName: spring-boot-secret
-    key: db-password
+    key: prod-db-password
   # Auth
-  - name: JWT_SECRET
+  - name: JWT_SECRET_KEY
     secretName: spring-boot-secret
-    key: jwt-secret
+    key: jwt-secret-key
   - name: ACCESS_DURATION
     secretName: spring-boot-secret
     key: access-duration
@@ -57,38 +61,36 @@ envFromSecret:
     secretName: spring-boot-secret
     key: refresh-duration
   # CORS
-  - name: CORS_ALLOWED
+  - name: CORS_ALLOWED_ORIGIN
     secretName: spring-boot-secret
-    key: cors-allowed
+    key: cors-allowed-origin
   # AI
-  - name: AI_BASE_URL
+  - name: PROD_AI_BASE_URL
     secretName: spring-boot-secret
-    key: ai-base-url
-  - name: AI_TIMEOUT_SECONDS
+    key: prod-ai-base-url
+  - name: PROD_AI_TIMEOUT_SECONDS
     secretName: spring-boot-secret
-    key: ai-timeout-seconds
+    key: prod-ai-timeout-seconds
   # RabbitMQ
   - name: RABBITMQ_ENABLED
     secretName: spring-boot-secret
     key: rabbitmq-enabled
-  - name: RABBITMQ_USERNAME
+  - name: RABBITMQ_STOMP_USERNAME
     secretName: spring-boot-secret
-    key: rabbitmq-username
-  - name: RABBITMQ_PASSWORD
+    key: rabbitmq-stomp-username
+  - name: RABBITMQ_STOMP_PASSWORD
     secretName: spring-boot-secret
-    key: rabbitmq-password
-  - name: RABBITMQ_AMQP_HOST
-    secretName: spring-boot-secret
-    key: rabbitmq-amqp-host
-  - name: RABBITMQ_AMQP_PORT
-    secretName: spring-boot-secret
-    key: rabbitmq-amqp-port
+    key: rabbitmq-stomp-password
   - name: RABBITMQ_STOMP_HOST
     secretName: spring-boot-secret
     key: rabbitmq-stomp-host
   - name: RABBITMQ_STOMP_PORT
     secretName: spring-boot-secret
     key: rabbitmq-stomp-port
+  # Kafka
+  - name: KAFKA_BOOTSTRAP_SERVERS
+    secretName: spring-boot-secret
+    key: kafka-bootstrap-servers
   # S3
   - name: S3_ACCESS_KEY
     secretName: spring-boot-secret
