@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ecr-token-renewer
+  namespace: billage-app
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ecr-token-renewer
+  namespace: billage-app
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["serviceaccounts"]
+    verbs: ["get", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ecr-token-renewer
+  namespace: billage-app
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ecr-token-renewer
+subjects:
+  - kind: ServiceAccount
+    name: ecr-token-renewer
+    namespace: billage-app
+---
+# ECR 토큰 자동 갱신 CronJob
+# - 10시간마다 실행 (ECR 토큰 12시간 만료)
+# - hostNetwork: true로 EC2 instance metadata 접근 (IAM Role 사용)
+# - kubectl은 런타임에 다운로드
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ecr-token-renew
+  namespace: billage-app
+spec:
+  schedule: "0 */10 * * *"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: ecr-token-renewer
+          hostNetwork: true
+          restartPolicy: OnFailure
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              effect: NoSchedule
+          nodeSelector:
+            node-role.kubernetes.io/control-plane: ""
+          containers:
+            - name: ecr-renew
+              image: amazon/aws-cli:latest
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+                  # kubectl 다운로드
+                  curl -sLO "https://dl.k8s.io/release/v1.28.15/bin/linux/amd64/kubectl"
+                  chmod +x kubectl
+
+                  # ECR 토큰 획득 (노드의 IAM Role 사용)
+                  TOKEN=$(aws ecr get-login-password --region ap-northeast-2)
+
+                  # Secret 재생성
+                  ./kubectl delete secret ecr-secret -n billage-app --ignore-not-found
+                  ./kubectl create secret docker-registry ecr-secret -n billage-app \
+                    --docker-server=988319239270.dkr.ecr.ap-northeast-2.amazonaws.com \
+                    --docker-username=AWS \
+                    --docker-password="$TOKEN"
+
+                  # ServiceAccount에 연결
+                  ./kubectl patch serviceaccount default -n billage-app \
+                    -p '{"imagePullSecrets": [{"name": "ecr-secret"}]}'
+
+                  echo "ECR token renewed at $(date)"
