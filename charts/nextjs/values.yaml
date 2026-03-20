@@ -24,12 +24,12 @@ strategy:
 
 probes:
   readiness:
-    path: /
+    path: /login
     initialDelaySeconds: 10
     periodSeconds: 10
     failureThreshold: 3
   liveness:
-    path: /
+    path: /login
     initialDelaySeconds: 15
     periodSeconds: 10
     failureThreshold: 3
