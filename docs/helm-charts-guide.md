@@ -78,21 +78,21 @@ charts/spring-boot/
 ```bash
 # dev 환경 배포
 helm install spring-boot ./charts/spring-boot \
-  -n village-app \
+  -n billage-app \
   -f ./charts/spring-boot/values-dev.yaml
 
 # prod 환경 배포
 helm install spring-boot ./charts/spring-boot \
-  -n village-app \
+  -n billage-app \
   -f ./charts/spring-boot/values-prod.yaml
 
 # 설정 변경 후 업데이트
 helm upgrade spring-boot ./charts/spring-boot \
-  -n village-app \
+  -n billage-app \
   -f ./charts/spring-boot/values-prod.yaml
 
 # 삭제
-helm uninstall spring-boot -n village-app
+helm uninstall spring-boot -n billage-app
 ```
 
 ---
@@ -159,9 +159,9 @@ spec:
 
 생성되는 Pod:
 ```
-rabbitmq-0  →  rabbitmq-0.rabbitmq-headless.village-data.svc.cluster.local
-rabbitmq-1  →  rabbitmq-1.rabbitmq-headless.village-data.svc.cluster.local
-rabbitmq-2  →  rabbitmq-2.rabbitmq-headless.village-data.svc.cluster.local
+rabbitmq-0  →  rabbitmq-0.rabbitmq-headless.billage-data.svc.cluster.local
+rabbitmq-1  →  rabbitmq-1.rabbitmq-headless.billage-data.svc.cluster.local
+rabbitmq-2  →  rabbitmq-2.rabbitmq-headless.billage-data.svc.cluster.local
 ```
 
 각 Pod는 **고정된 DNS 이름**을 갖는다. 이 DNS로 서로를 찾아 클러스터를 구성한다.
@@ -200,7 +200,7 @@ affinity:
     requiredDuringSchedulingIgnoredDuringExecution:
       nodeSelectorTerms:
         - matchExpressions:
-            - key: node-role
+            - key: workload-plane
               operator: In
               values: ["data"]
 
@@ -214,7 +214,7 @@ affinity:
 
 # 3. data 노드의 taint를 견딜 수 있게
 tolerations:
-  - key: dedicated
+  - key: workload-plane
     operator: Equal
     value: data
     effect: NoSchedule
@@ -234,12 +234,12 @@ Data Node 3 (AZ-c)  →  rabbitmq-2
 1. Headless Service (rabbitmq-headless)
    → clusterIP: None
    → Pod끼리 서로 찾을 때 사용 (클러스터 형성용)
-   → rabbitmq-0.rabbitmq-headless.village-data.svc.cluster.local
+   → rabbitmq-0.rabbitmq-headless.billage-data.svc.cluster.local
 
 2. Client Service (rabbitmq)
    → clusterIP: 자동 할당
    → 앱(Spring Boot)이 접속할 때 사용
-   → rabbitmq.village-data.svc.cluster.local:5672
+   → rabbitmq.billage-data.svc.cluster.local:5672
    → 3개 Pod에 자동 로드밸런싱
 ```
 
@@ -354,7 +354,7 @@ Pod 종료
 ┌─────────────────────────────────────────────────────┐
 │                  Kubernetes Cluster                   │
 │                                                       │
-│  App Nodes (label: node-role=app)                    │
+│  App Nodes (label: workload-plane=app)                    │
 │  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐   │
 │  │ Node 1  │ │ Node 2  │ │ Node 3  │ │ Node 4  │   │
 │  │ AZ-a    │ │ AZ-b    │ │ AZ-c    │ │ AZ-a    │   │
@@ -365,7 +365,7 @@ Pod 종료
 │  ↑ topologySpread로 AZ/노드에 고르게 분산             │
 │  ↑ taint 없음 → 일반 Pod 자유롭게 배치               │
 │                                                       │
-│  Data Nodes (label: node-role=data, taint: dedicated) │
+│  Data Nodes (label: workload-plane=data, taint: workload-plane=data) │
 │  ┌─────────┐ ┌─────────┐ ┌─────────┐               │
 │  │ Node 1  │ │ Node 2  │ │ Node 3  │               │
 │  │ AZ-a    │ │ AZ-b    │ │ AZ-c    │               │
@@ -418,12 +418,12 @@ brew install helm
 # 템플릿이 어떤 YAML로 변환되는지 미리 보기
 helm template spring-boot ./charts/spring-boot \
   -f ./charts/spring-boot/values-dev.yaml \
-  -n village-app
+  -n billage-app
 
 # prod 값으로 렌더링
 helm template spring-boot ./charts/spring-boot \
   -f ./charts/spring-boot/values-prod.yaml \
-  -n village-app
+  -n billage-app
 ```
 
 이 명령은 클러스터 없이 로컬에서 실행 가능하다.
@@ -457,13 +457,13 @@ brew install minikube
 minikube start --memory 4096 --cpus 2
 ```
 
-**주의**: 로컬에서는 nodeAffinity(`node-role=app`)가 맞지 않아 Pod가 Pending된다.
+**주의**: 로컬에서는 nodeAffinity(`workload-plane=app`)가 맞지 않아 Pod가 Pending된다.
 dev 테스트 시에는 nodeAffinity를 제거하거나, 노드에 라벨을 붙여야 한다:
 
 ```bash
 # kind 노드에 라벨 추가
-kubectl label nodes billage-test-control-plane node-role=app
-kubectl label nodes billage-test-control-plane node-role=data
+kubectl label nodes billage-test-control-plane workload-plane=app
+kubectl label nodes billage-test-control-plane workload-plane=data
 
 # taint는 로컬에서는 안 거는 게 편함
 ```
@@ -474,15 +474,15 @@ kubectl apply -f base/namespaces.yaml
 
 # Spring Boot만 dev로 배포 테스트
 helm install spring-boot ./charts/spring-boot \
-  -n village-app \
+  -n billage-app \
   -f ./charts/spring-boot/values-dev.yaml
 
 # 상태 확인
-kubectl get pods -n village-app
-kubectl describe pod -n village-app spring-boot-0
+kubectl get pods -n billage-app
+kubectl describe pod -n billage-app spring-boot-0
 
 # 정리
-helm uninstall spring-boot -n village-app
+helm uninstall spring-boot -n billage-app
 kind delete cluster --name billage-test
 ```
 

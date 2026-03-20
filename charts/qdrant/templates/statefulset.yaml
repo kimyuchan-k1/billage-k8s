@@ -21,7 +21,7 @@ spec:
           requiredDuringSchedulingIgnoredDuringExecution:
             nodeSelectorTerms:
               - matchExpressions:
-                  - key: node-role
+                  - key: workload-plane
                     operator: In
                     values:
                       - data
@@ -34,7 +34,7 @@ spec:
                     app: rabbitmq
                 topologyKey: kubernetes.io/hostname
       tolerations:
-        - key: dedicated
+        - key: workload-plane
           operator: Equal
           value: data
           effect: NoSchedule

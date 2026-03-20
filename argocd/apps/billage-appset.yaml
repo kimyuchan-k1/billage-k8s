@@ -13,14 +13,19 @@ spec:
               elements:
                 - chart: spring-boot
                   service: api
+                  targetNamespace: billage-app
                 - chart: nextjs
                   service: web
+                  targetNamespace: billage-app
                 - chart: fastapi
                   service: ai
+                  targetNamespace: billage-app
                 - chart: rabbitmq
                   service: mq
+                  targetNamespace: billage-data
                 - chart: qdrant
                   service: vectordb
+                  targetNamespace: billage-data
           - list:
               elements:
                 - env: dev
@@ -51,7 +56,7 @@ spec:
             - 'values-{{.env}}.yaml'
       destination:
         server: https://kubernetes.default.svc
-        namespace: 'billage-{{.env}}'
+        namespace: '{{.targetNamespace}}'
       syncPolicy:
         automated:
           prune: '{{.autoSync}}'

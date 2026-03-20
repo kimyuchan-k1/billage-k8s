@@ -24,10 +24,15 @@ pdb:
   enabled: true
   minAvailable: "50%"
 
-env:
+env: []
+
+envFromSecret:
   - name: NEXT_PUBLIC_API_URL
-    value: "https://api.billages.com"
+    secretName: nextjs-secret
+    key: next-public-api-url
   - name: NEXTAUTH_URL
-    value: "https://billages.com"
+    secretName: nextjs-secret
+    key: nextauth-url
   - name: AUTH_TRUST_HOST
-    value: "true"
+    secretName: nextjs-secret
+    key: auth-trust-host

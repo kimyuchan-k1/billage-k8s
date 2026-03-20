@@ -275,7 +275,7 @@ export KUBECONFIG=/path/to/kubeconfig.yaml
 
 # 로컬 리포 디렉토리에서 바로 실행
 cd /Users/kim-yuchan/Downloads/billage-k8s-manifests
-helm install spring-boot ./charts/spring-boot -n village-app -f ./charts/spring-boot/values-dev.yaml
+helm install spring-boot ./charts/spring-boot -n billage-app -f ./charts/spring-boot/values-dev.yaml
 ```
 
 > 단, 클러스터 API 서버가 퍼블릭 접근을 허용하거나 VPN이 연결되어 있어야 한다.
@@ -309,7 +309,7 @@ done
 # 4. 이후 설치 시 (ECR에서 직접)
 helm install spring-boot oci://${ECR_URL}/helm-charts/spring-boot \
   --version 0.1.0 \
-  -n village-app \
+  -n billage-app \
   -f ./charts/spring-boot/values-prod.yaml
 ```
 
@@ -333,10 +333,10 @@ kubectl get namespaces
 기대 결과:
 ```
 NAME           STATUS   AGE
-village-app    Active   ...
-village-data   Active   ...
-village-edge   Active   ...
-village-ops    Active   ...
+billage-app    Active   ...
+billage-data   Active   ...
+billage-edge   Active   ...
+billage-ops    Active   ...
 ```
 
 ### 3-2. Network Policy 적용
@@ -347,8 +347,8 @@ kubectl apply -f base/network-policies/default-deny.yaml
 
 **검증:**
 ```bash
-kubectl get networkpolicy -n village-app
-kubectl get networkpolicy -n village-data
+kubectl get networkpolicy -n billage-app
+kubectl get networkpolicy -n billage-data
 ```
 
 > 이 정책은 기본적으로 모든 트래픽을 차단한다. 서비스 간 통신은 별도 allow 규칙이 필요할 수 있다.
@@ -369,7 +369,7 @@ echo "Erlang Cookie: $ERLANG_COOKIE"   # 따로 기록해둘 것
 
 kubectl create secret generic rabbitmq-secret \
   --from-literal=erlang-cookie="$ERLANG_COOKIE" \
-  -n village-data
+  -n billage-data
 ```
 
 ### 4-2. Spring Boot Secret
@@ -381,8 +381,8 @@ kubectl create secret generic spring-boot-secret \
   --from-literal=db-password='<DB_PASSWORD>' \
   --from-literal=jwt-secret='<JWT_SECRET>' \
   --from-literal=cors-allowed='https://billages.com' \
-  --from-literal=ai-base-url='http://fastapi.village-app.svc.cluster.local:5000' \
-  -n village-app
+  --from-literal=ai-base-url='http://fastapi.billage-app.svc.cluster.local:5000' \
+  -n billage-app
 ```
 
 > Dev 환경은 cors-allowed를 `https://dev.billages.com`으로,
@@ -392,26 +392,26 @@ kubectl create secret generic spring-boot-secret \
 
 ```bash
 kubectl create secret generic fastapi-secret \
-  --from-literal=qdrant-url='http://qdrant.village-data.svc.cluster.local:6333' \
+  --from-literal=qdrant-url='http://qdrant.billage-data.svc.cluster.local:6333' \
   --from-literal=db-url='mysql://<RDS_ENDPOINT>:3306/billage' \
-  -n village-app
+  -n billage-app
 ```
 
 ### 4-4. Secret 생성 확인
 
 ```bash
-kubectl get secrets -n village-app
-kubectl get secrets -n village-data
+kubectl get secrets -n billage-app
+kubectl get secrets -n billage-data
 ```
 
 기대 결과:
 ```
-# village-app
+# billage-app
 NAME                  TYPE     DATA   AGE
 spring-boot-secret    Opaque   6      ...
 fastapi-secret        Opaque   2      ...
 
-# village-data
+# billage-data
 NAME                  TYPE     DATA   AGE
 rabbitmq-secret       Opaque   1      ...
 ```
@@ -483,11 +483,11 @@ helm lint ./charts/qdrant -f ./charts/qdrant/values-${ENV}.yaml
 
 # template: 렌더링된 YAML 미리보기 (실제 설치 안 함)
 helm template rabbitmq ./charts/rabbitmq \
-  -n village-data \
+  -n billage-data \
   -f ./charts/rabbitmq/values-${ENV}.yaml
 
 helm template qdrant ./charts/qdrant \
-  -n village-data \
+  -n billage-data \
   -f ./charts/qdrant/values-${ENV}.yaml
 ```
 
@@ -503,7 +503,7 @@ helm template qdrant ./charts/qdrant \
 ENV=dev  # 또는 prod
 
 helm install rabbitmq ./charts/rabbitmq \
-  -n village-data \
+  -n billage-data \
   -f ./charts/rabbitmq/values-${ENV}.yaml
 ```
 
@@ -511,7 +511,7 @@ helm install rabbitmq ./charts/rabbitmq \
 
 ```bash
 # Pod 상태 확인 (OrderedReady라서 0 → 1 → 2 순서로 뜬다)
-kubectl get pods -n village-data -l app=rabbitmq -w
+kubectl get pods -n billage-data -l app=rabbitmq -w
 
 # 기대 결과 (Prod):
 # rabbitmq-0   1/1   Running   ...
@@ -523,11 +523,11 @@ kubectl get pods -n village-data -l app=rabbitmq -w
 
 ```bash
 # PVC가 Bound 되었는지
-kubectl get pvc -n village-data
+kubectl get pvc -n billage-data
 # 기대: data-rabbitmq-0, data-rabbitmq-1, data-rabbitmq-2 → Bound
 
 # 클러스터 상태 확인 (Pod 안에서 실행)
-kubectl exec -n village-data rabbitmq-0 -- rabbitmqctl cluster_status
+kubectl exec -n billage-data rabbitmq-0 -- rabbitmqctl cluster_status
 
 # 기대 결과에서 확인:
 # - Running Nodes: rabbit@rabbitmq-0, rabbit@rabbitmq-1, rabbit@rabbitmq-2
@@ -536,7 +536,7 @@ kubectl exec -n village-data rabbitmq-0 -- rabbitmqctl cluster_status
 
 **Pod이 Pending에 걸리면:**
 ```bash
-kubectl describe pod rabbitmq-0 -n village-data
+kubectl describe pod rabbitmq-0 -n billage-data
 # Events 섹션에서 원인 확인:
 # - "node(s) didn't match Pod's node affinity" → 라벨 확인 (Phase 1-2)
 # - "node(s) had untolerated taint" → tolerations 확인
@@ -547,14 +547,14 @@ kubectl describe pod rabbitmq-0 -n village-data
 
 ```bash
 helm install qdrant ./charts/qdrant \
-  -n village-data \
+  -n billage-data \
   -f ./charts/qdrant/values-${ENV}.yaml
 ```
 
 **배포 추적:**
 
 ```bash
-kubectl get pods -n village-data -l app=qdrant -w
+kubectl get pods -n billage-data -l app=qdrant -w
 
 # 기대 결과:
 # qdrant-0   1/1   Running   ...
@@ -564,23 +564,23 @@ kubectl get pods -n village-data -l app=qdrant -w
 
 ```bash
 # PVC 확인
-kubectl get pvc -n village-data -l app=qdrant
+kubectl get pvc -n billage-data -l app=qdrant
 # 기대: data-qdrant-0 → Bound
 
 # Health 확인 (REST API)
-kubectl exec -n village-data qdrant-0 -- \
+kubectl exec -n billage-data qdrant-0 -- \
   wget -qO- http://localhost:6333/readyz
 # 기대: 200 OK 또는 빈 응답 (정상)
 
 # 또는 port-forward로 로컬에서 확인
-kubectl port-forward -n village-data svc/qdrant 6333:6333 &
+kubectl port-forward -n billage-data svc/qdrant 6333:6333 &
 curl http://localhost:6333/readyz
 ```
 
 ### 6-4. Stateful 서비스 전체 상태 확인
 
 ```bash
-kubectl get all -n village-data
+kubectl get all -n billage-data
 ```
 
 기대 결과:
@@ -630,16 +630,16 @@ done
 
 ```bash
 helm install fastapi ./charts/fastapi \
-  -n village-app \
+  -n billage-app \
   -f ./charts/fastapi/values-${ENV}.yaml
 ```
 
 **검증:**
 ```bash
-kubectl get pods -n village-app -l app=fastapi -w
+kubectl get pods -n billage-app -l app=fastapi -w
 
 # Running 확인 후 헬스체크
-kubectl exec -n village-app deploy/fastapi -- \
+kubectl exec -n billage-app deploy/fastapi -- \
   wget -qO- http://localhost:5000/ai/health
 ```
 
@@ -647,19 +647,19 @@ kubectl exec -n village-app deploy/fastapi -- \
 
 ```bash
 helm install spring-boot ./charts/spring-boot \
-  -n village-app \
+  -n billage-app \
   -f ./charts/spring-boot/values-${ENV}.yaml
 ```
 
 **검증:**
 ```bash
-kubectl get pods -n village-app -l app=spring-boot -w
+kubectl get pods -n billage-app -l app=spring-boot -w
 
 # Spring Boot는 JVM 시작이 느리다. startupProbe가 최대 160초까지 기다린다.
 # STATUS가 Running이지만 READY가 0/1이면 아직 startupProbe 진행 중이다.
 
 # Running + Ready 확인 후:
-kubectl exec -n village-app deploy/spring-boot -- \
+kubectl exec -n billage-app deploy/spring-boot -- \
   wget -qO- http://localhost:8080/actuator/health
 # 기대: {"status":"UP"}
 ```
@@ -668,15 +668,15 @@ kubectl exec -n village-app deploy/spring-boot -- \
 
 ```bash
 helm install nextjs ./charts/nextjs \
-  -n village-app \
+  -n billage-app \
   -f ./charts/nextjs/values-${ENV}.yaml
 ```
 
 **검증:**
 ```bash
-kubectl get pods -n village-app -l app=nextjs -w
+kubectl get pods -n billage-app -l app=nextjs -w
 
-kubectl exec -n village-app deploy/nextjs -- \
+kubectl exec -n billage-app deploy/nextjs -- \
   wget -qO- http://localhost:3000/
 # HTML 응답이 오면 정상
 ```
@@ -684,7 +684,7 @@ kubectl exec -n village-app deploy/nextjs -- \
 ### 7-5. Stateless 서비스 전체 상태 확인
 
 ```bash
-kubectl get all -n village-app
+kubectl get all -n billage-app
 ```
 
 기대 결과 (Prod):
@@ -712,7 +712,7 @@ deployment.apps/nextjs        2/2     2            2           ...
 ### 7-6. HPA 확인 (Prod만)
 
 ```bash
-kubectl get hpa -n village-app
+kubectl get hpa -n billage-app
 ```
 
 기대 결과:
@@ -734,8 +734,8 @@ kubectl get pods -n kube-system -l k8s-app=metrics-server
 ### 7-7. PDB 확인 (Prod만)
 
 ```bash
-kubectl get pdb -n village-app
-kubectl get pdb -n village-data
+kubectl get pdb -n billage-app
+kubectl get pdb -n billage-data
 ```
 
 ---
@@ -771,7 +771,7 @@ helm install ingress-nginx ingress-nginx/ingress-nginx \
 kubectl create secret tls billage-tls \
   --cert=/path/to/fullchain.pem \
   --key=/path/to/privkey.pem \
-  -n village-app
+  -n billage-app
 ```
 
 ### 8-3. Ingress 리소스 배포
@@ -782,7 +782,7 @@ kubectl apply -f base/ingress.yaml
 
 **검증:**
 ```bash
-kubectl get ingress -n village-app
+kubectl get ingress -n billage-app
 ```
 
 기대 결과:
@@ -794,10 +794,10 @@ billage-ingress   nginx   billages.com,api.billages.com      <EXTERNAL-IP>  80, 
 ### 8-4. Ingress 라우팅 테스트
 
 ```bash
-INGRESS_IP=$(kubectl get ingress billage-ingress -n village-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+INGRESS_IP=$(kubectl get ingress billage-ingress -n billage-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
 # 또는 hostname인 경우
-INGRESS_HOST=$(kubectl get ingress billage-ingress -n village-app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+INGRESS_HOST=$(kubectl get ingress billage-ingress -n billage-app -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
 
 # 프론트엔드
 curl -H "Host: billages.com" http://$INGRESS_IP/
@@ -821,12 +821,12 @@ curl -H "Host: api.billages.com" http://$INGRESS_IP/ai/health
 ### 9-1. 전체 리소스 한눈에 보기
 
 ```bash
-echo "=== village-app ==="
-kubectl get all -n village-app
+echo "=== billage-app ==="
+kubectl get all -n billage-app
 
 echo ""
-echo "=== village-data ==="
-kubectl get all -n village-data
+echo "=== billage-data ==="
+kubectl get all -n billage-data
 
 echo ""
 echo "=== PVC ==="
@@ -834,37 +834,37 @@ kubectl get pvc -A
 
 echo ""
 echo "=== Ingress ==="
-kubectl get ingress -n village-app
+kubectl get ingress -n billage-app
 
 echo ""
 echo "=== HPA ==="
-kubectl get hpa -n village-app
+kubectl get hpa -n billage-app
 
 echo ""
 echo "=== PDB ==="
-kubectl get pdb -n village-app -n village-data
+kubectl get pdb -n billage-app -n billage-data
 ```
 
 ### 9-2. 서비스 간 연결 테스트
 
 ```bash
 # Spring Boot → RabbitMQ 연결
-kubectl exec -n village-app deploy/spring-boot -- \
-  wget -qO- --timeout=5 http://rabbitmq.village-data.svc.cluster.local:15672
+kubectl exec -n billage-app deploy/spring-boot -- \
+  wget -qO- --timeout=5 http://rabbitmq.billage-data.svc.cluster.local:15672
 # RabbitMQ Management UI HTML이 오면 정상
 
 # FastAPI → Qdrant 연결
-kubectl exec -n village-app deploy/fastapi -- \
-  wget -qO- --timeout=5 http://qdrant.village-data.svc.cluster.local:6333/readyz
+kubectl exec -n billage-app deploy/fastapi -- \
+  wget -qO- --timeout=5 http://qdrant.billage-data.svc.cluster.local:6333/readyz
 # 200 OK면 정상
 
 # Spring Boot → FastAPI 연결
-kubectl exec -n village-app deploy/spring-boot -- \
-  wget -qO- --timeout=5 http://fastapi.village-app.svc.cluster.local:5000/ai/health
+kubectl exec -n billage-app deploy/spring-boot -- \
+  wget -qO- --timeout=5 http://fastapi.billage-app.svc.cluster.local:5000/ai/health
 
 # Next.js → Spring Boot 연결
-kubectl exec -n village-app deploy/nextjs -- \
-  wget -qO- --timeout=5 http://spring-boot.village-app.svc.cluster.local:8080/actuator/health
+kubectl exec -n billage-app deploy/nextjs -- \
+  wget -qO- --timeout=5 http://spring-boot.billage-app.svc.cluster.local:8080/actuator/health
 ```
 
 > 연결이 안 되면 **Network Policy** 때문일 수 있다.
@@ -872,8 +872,8 @@ kubectl exec -n village-app deploy/nextjs -- \
 >
 > 임시 해제:
 > ```bash
-> kubectl delete networkpolicy default-deny-village-app -n village-app
-> kubectl delete networkpolicy default-deny-village-data -n village-data
+> kubectl delete networkpolicy default-deny-billage-app -n billage-app
+> kubectl delete networkpolicy default-deny-billage-data -n billage-data
 > ```
 > 이후 세부 allow 규칙을 작성하여 다시 적용한다.
 
@@ -881,20 +881,20 @@ kubectl exec -n village-app deploy/nextjs -- \
 
 ```bash
 # 서비스별 최근 로그
-kubectl logs -n village-app deploy/spring-boot --tail=50
-kubectl logs -n village-app deploy/fastapi --tail=50
-kubectl logs -n village-app deploy/nextjs --tail=50
-kubectl logs -n village-data rabbitmq-0 --tail=50
-kubectl logs -n village-data qdrant-0 --tail=50
+kubectl logs -n billage-app deploy/spring-boot --tail=50
+kubectl logs -n billage-app deploy/fastapi --tail=50
+kubectl logs -n billage-app deploy/nextjs --tail=50
+kubectl logs -n billage-data rabbitmq-0 --tail=50
+kubectl logs -n billage-data qdrant-0 --tail=50
 ```
 
 ### 9-4. DNS 테스트 (클러스터 내부)
 
 ```bash
 # 임시 Pod으로 DNS 해석 확인
-kubectl run dns-test --rm -it --image=busybox --restart=Never -- nslookup spring-boot.village-app.svc.cluster.local
+kubectl run dns-test --rm -it --image=busybox --restart=Never -- nslookup spring-boot.billage-app.svc.cluster.local
 
-kubectl run dns-test2 --rm -it --image=busybox --restart=Never -- nslookup rabbitmq-headless.village-data.svc.cluster.local
+kubectl run dns-test2 --rm -it --image=busybox --restart=Never -- nslookup rabbitmq-headless.billage-data.svc.cluster.local
 ```
 
 ### 9-5. 최종 체크리스트
@@ -902,12 +902,12 @@ kubectl run dns-test2 --rm -it --image=busybox --restart=Never -- nslookup rabbi
 | 항목 | 확인 명령어 | 기대 결과 |
 |------|-----------|----------|
 | 모든 Pod Running | `kubectl get pods -A -l 'app in (spring-boot,nextjs,fastapi,rabbitmq,qdrant)'` | 전부 `1/1 Running` |
-| PVC Bound | `kubectl get pvc -n village-data` | 전부 `Bound` |
-| RabbitMQ Cluster | `kubectl exec -n village-data rabbitmq-0 -- rabbitmqctl cluster_status` | 3노드 연결 (prod) |
-| Qdrant Health | `kubectl exec -n village-data qdrant-0 -- wget -qO- http://localhost:6333/readyz` | 정상 응답 |
-| Spring Boot Health | `kubectl exec -n village-app deploy/spring-boot -- wget -qO- http://localhost:8080/actuator/health` | `{"status":"UP"}` |
+| PVC Bound | `kubectl get pvc -n billage-data` | 전부 `Bound` |
+| RabbitMQ Cluster | `kubectl exec -n billage-data rabbitmq-0 -- rabbitmqctl cluster_status` | 3노드 연결 (prod) |
+| Qdrant Health | `kubectl exec -n billage-data qdrant-0 -- wget -qO- http://localhost:6333/readyz` | 정상 응답 |
+| Spring Boot Health | `kubectl exec -n billage-app deploy/spring-boot -- wget -qO- http://localhost:8080/actuator/health` | `{"status":"UP"}` |
 | Ingress 접근 | `curl -H "Host: billages.com" http://<INGRESS_IP>/` | HTML 응답 |
-| HPA 동작 (prod) | `kubectl get hpa -n village-app` | TARGETS에 % 표시 |
+| HPA 동작 (prod) | `kubectl get hpa -n billage-app` | TARGETS에 % 표시 |
 | 서비스 간 통신 | 9-2 항목 전체 | 전부 응답 |
 
 ---
@@ -970,7 +970,7 @@ kubectl get pods -n <namespace> --show-labels
 kubectl logs -n ingress-nginx deploy/ingress-nginx-controller --tail=100
 
 # Ingress 상태
-kubectl describe ingress billage-ingress -n village-app
+kubectl describe ingress billage-ingress -n billage-app
 
 # 흔한 원인:
 # - Ingress Controller 미설치
@@ -1222,15 +1222,15 @@ grep "tag:" charts/spring-boot/values-dev.yaml
 ### 13-1. ArgoCD 설치
 
 ```bash
-# 네임스페이스 생성 (이미 namespaces.yaml에 village-ops가 있다면 스킵)
-kubectl create namespace village-ops
+# 네임스페이스 생성 (이미 namespaces.yaml에 billage-ops가 있다면 스킵)
+kubectl create namespace billage-ops
 
 # ArgoCD 설치
-kubectl apply -n village-ops \
+kubectl apply -n billage-ops \
   -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
 # Pod 상태 확인 (모두 Running까지 1~2분)
-kubectl get pods -n village-ops -w
+kubectl get pods -n billage-ops -w
 ```
 
 ### 13-2. ArgoCD CLI 설치 & 로그인
@@ -1240,12 +1240,12 @@ kubectl get pods -n village-ops -w
 brew install argocd
 
 # 초기 admin 비밀번호 확인
-ARGO_PW=$(kubectl get secret argocd-initial-admin-secret -n village-ops \
+ARGO_PW=$(kubectl get secret argocd-initial-admin-secret -n billage-ops \
   -o jsonpath='{.data.password}' | base64 -d)
 echo $ARGO_PW
 
 # 포트포워딩으로 접근
-kubectl port-forward svc/argocd-server -n village-ops 8443:443 &
+kubectl port-forward svc/argocd-server -n billage-ops 8443:443 &
 
 # 로그인
 argocd login localhost:8443 --username admin --password $ARGO_PW --insecure
@@ -1275,7 +1275,7 @@ argocd app create spring-boot-dev \
   --repo https://github.com/your-org/billage-k8s-manifests.git \
   --path charts/spring-boot \
   --dest-server https://kubernetes.default.svc \
-  --dest-namespace village-app \
+  --dest-namespace billage-app \
   --helm-values values-dev.yaml \
   --sync-policy automated \
   --auto-prune \
@@ -1286,7 +1286,7 @@ argocd app create fastapi-dev \
   --repo https://github.com/your-org/billage-k8s-manifests.git \
   --path charts/fastapi \
   --dest-server https://kubernetes.default.svc \
-  --dest-namespace village-app \
+  --dest-namespace billage-app \
   --helm-values values-dev.yaml \
   --sync-policy automated \
   --auto-prune \
@@ -1297,7 +1297,7 @@ argocd app create nextjs-dev \
   --repo https://github.com/your-org/billage-k8s-manifests.git \
   --path charts/nextjs \
   --dest-server https://kubernetes.default.svc \
-  --dest-namespace village-app \
+  --dest-namespace billage-app \
   --helm-values values-dev.yaml \
   --sync-policy automated \
   --auto-prune \
@@ -1308,7 +1308,7 @@ argocd app create rabbitmq-dev \
   --repo https://github.com/your-org/billage-k8s-manifests.git \
   --path charts/rabbitmq \
   --dest-server https://kubernetes.default.svc \
-  --dest-namespace village-data \
+  --dest-namespace billage-data \
   --helm-values values-dev.yaml \
   --sync-policy automated \
   --auto-prune \
@@ -1319,7 +1319,7 @@ argocd app create qdrant-dev \
   --repo https://github.com/your-org/billage-k8s-manifests.git \
   --path charts/qdrant \
   --dest-server https://kubernetes.default.svc \
-  --dest-namespace village-data \
+  --dest-namespace billage-data \
   --helm-values values-dev.yaml \
   --sync-policy automated \
   --auto-prune \
@@ -1334,7 +1334,7 @@ argocd app create spring-boot-prod \
   --repo https://github.com/your-org/billage-k8s-manifests.git \
   --path charts/spring-boot \
   --dest-server https://kubernetes.default.svc \
-  --dest-namespace village-app \
+  --dest-namespace billage-app \
   --helm-values values-prod.yaml
   # sync-policy 미지정 → 수동 Sync
 
@@ -1361,18 +1361,18 @@ argocd app list
 
 # 기대 결과:
 # NAME               CLUSTER                         NAMESPACE    STATUS  HEALTH   SYNCPOLICY
-# spring-boot-dev    https://kubernetes.default.svc  village-app  Synced  Healthy  Auto
-# fastapi-dev        https://kubernetes.default.svc  village-app  Synced  Healthy  Auto
-# nextjs-dev         https://kubernetes.default.svc  village-app  Synced  Healthy  Auto
-# rabbitmq-dev       https://kubernetes.default.svc  village-data Synced  Healthy  Auto
-# qdrant-dev         https://kubernetes.default.svc  village-data Synced  Healthy  Auto
-# spring-boot-prod   https://kubernetes.default.svc  village-app  Synced  Healthy  <none>
+# spring-boot-dev    https://kubernetes.default.svc  billage-app  Synced  Healthy  Auto
+# fastapi-dev        https://kubernetes.default.svc  billage-app  Synced  Healthy  Auto
+# nextjs-dev         https://kubernetes.default.svc  billage-app  Synced  Healthy  Auto
+# rabbitmq-dev       https://kubernetes.default.svc  billage-data Synced  Healthy  Auto
+# qdrant-dev         https://kubernetes.default.svc  billage-data Synced  Healthy  Auto
+# spring-boot-prod   https://kubernetes.default.svc  billage-app  Synced  Healthy  <none>
 
 # 특정 앱 상세
 argocd app get spring-boot-dev
 
 # ArgoCD UI 접속 (포트포워딩)
-kubectl port-forward svc/argocd-server -n village-ops 8443:443
+kubectl port-forward svc/argocd-server -n billage-ops 8443:443
 # 브라우저에서 https://localhost:8443 접속
 ```
 
@@ -1404,7 +1404,7 @@ argocd app get spring-boot-dev
 # STATUS: Synced, HEALTH: Healthy
 
 # 5. 실제 Pod이 새 이미지로 교체되었는지
-kubectl get pods -n village-app -l app=spring-boot -o jsonpath='{.items[*].spec.containers[*].image}'
+kubectl get pods -n billage-app -l app=spring-boot -o jsonpath='{.items[*].spec.containers[*].image}'
 # 기대: ...billage-be:dev-xxxxxxx (새 태그)
 ```
 
@@ -1510,21 +1510,21 @@ git push
 
 | 네임스페이스 | 서비스 |
 |-------------|--------|
-| `village-app` | spring-boot, nextjs, fastapi |
-| `village-data` | rabbitmq, qdrant |
-| `village-edge` | ingress controller (예정) |
-| `village-ops` | ArgoCD, Prometheus, Grafana (예정) |
+| `billage-app` | spring-boot, nextjs, fastapi |
+| `billage-data` | rabbitmq, qdrant |
+| `billage-edge` | ingress controller (예정) |
+| `billage-ops` | ArgoCD, Prometheus, Grafana (예정) |
 
 ### 서비스 포트 & DNS
 
 | 서비스 | 포트 | 클러스터 내부 DNS |
 |--------|------|------------------|
-| Spring Boot | 8080 | `spring-boot.village-app.svc.cluster.local` |
-| Next.js | 3000 | `nextjs.village-app.svc.cluster.local` |
-| FastAPI | 5000 | `fastapi.village-app.svc.cluster.local` |
-| RabbitMQ (AMQP) | 5672 | `rabbitmq.village-data.svc.cluster.local` |
+| Spring Boot | 8080 | `spring-boot.billage-app.svc.cluster.local` |
+| Next.js | 3000 | `nextjs.billage-app.svc.cluster.local` |
+| FastAPI | 5000 | `fastapi.billage-app.svc.cluster.local` |
+| RabbitMQ (AMQP) | 5672 | `rabbitmq.billage-data.svc.cluster.local` |
 | RabbitMQ (Mgmt) | 15672 | 동일 |
-| Qdrant (REST) | 6333 | `qdrant.village-data.svc.cluster.local` |
+| Qdrant (REST) | 6333 | `qdrant.billage-data.svc.cluster.local` |
 | Qdrant (gRPC) | 6334 | 동일 |
 
 ### 필수 노드 라벨 & Taint
@@ -1538,9 +1538,9 @@ git push
 
 | Secret 이름 | 네임스페이스 | 키 목록 |
 |-------------|-------------|--------|
-| `spring-boot-secret` | village-app | db-url, db-username, db-password, jwt-secret, cors-allowed, ai-base-url |
-| `fastapi-secret` | village-app | qdrant-url, db-url |
-| `rabbitmq-secret` | village-data | erlang-cookie |
+| `spring-boot-secret` | billage-app | db-url, db-username, db-password, jwt-secret, cors-allowed, ai-base-url |
+| `fastapi-secret` | billage-app | qdrant-url, db-url |
+| `rabbitmq-secret` | billage-data | erlang-cookie |
 
 ### Helm 릴리스 관리 명령어
 
@@ -1549,20 +1549,20 @@ git push
 helm list -A
 
 # 릴리스 상태 확인
-helm status spring-boot -n village-app
+helm status spring-boot -n billage-app
 
 # 업그레이드 (values 변경 후)
 helm upgrade spring-boot ./charts/spring-boot \
-  -n village-app \
+  -n billage-app \
   -f ./charts/spring-boot/values-${ENV}.yaml
 
 # 롤백 (이전 버전으로)
-helm rollback spring-boot 1 -n village-app
+helm rollback spring-boot 1 -n billage-app
 
 # 삭제
-helm uninstall spring-boot -n village-app
+helm uninstall spring-boot -n billage-app
 
 # 삭제 시 PVC는 자동 삭제되지 않는다 (데이터 보호)
 # 수동 삭제 필요 시:
-kubectl delete pvc data-rabbitmq-0 data-rabbitmq-1 data-rabbitmq-2 -n village-data
+kubectl delete pvc data-rabbitmq-0 data-rabbitmq-1 data-rabbitmq-2 -n billage-data
 ```

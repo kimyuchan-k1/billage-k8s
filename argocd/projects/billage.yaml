@@ -10,9 +10,13 @@ spec:
     - 'https://github.com/kimyuchan-k1/billage-k8s.git'
 
   destinations:
-    - namespace: billage-dev
+    - namespace: billage-app
       server: https://kubernetes.default.svc
-    - namespace: billage-prod
+    - namespace: billage-data
+      server: https://kubernetes.default.svc
+    - namespace: billage-edge
+      server: https://kubernetes.default.svc
+    - namespace: billage-ops
       server: https://kubernetes.default.svc
 
   clusterResourceWhitelist:

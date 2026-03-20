@@ -29,11 +29,14 @@ pdb:
   enabled: true
   minAvailable: "66%"
 
-env:
-  - name: SPRING_PROFILES_ACTIVE
-    value: "prod"
+env: []
 
 envFromSecret:
+  # Profile
+  - name: SPRING_PROFILES_ACTIVE
+    secretName: spring-boot-secret
+    key: spring-profiles-active
+  # DB
   - name: DB_URL
     secretName: spring-boot-secret
     key: db-url
@@ -43,14 +46,66 @@ envFromSecret:
   - name: DB_PASSWORD
     secretName: spring-boot-secret
     key: db-password
+  # Auth
   - name: JWT_SECRET
     secretName: spring-boot-secret
     key: jwt-secret
+  - name: ACCESS_DURATION
+    secretName: spring-boot-secret
+    key: access-duration
+  - name: REFRESH_DURATION
+    secretName: spring-boot-secret
+    key: refresh-duration
+  # CORS
   - name: CORS_ALLOWED
     secretName: spring-boot-secret
     key: cors-allowed
+  # AI
   - name: AI_BASE_URL
     secretName: spring-boot-secret
     key: ai-base-url
-
-ssmPath: "/billage/prod/be/"
+  - name: AI_TIMEOUT_SECONDS
+    secretName: spring-boot-secret
+    key: ai-timeout-seconds
+  # RabbitMQ
+  - name: RABBITMQ_ENABLED
+    secretName: spring-boot-secret
+    key: rabbitmq-enabled
+  - name: RABBITMQ_USERNAME
+    secretName: spring-boot-secret
+    key: rabbitmq-username
+  - name: RABBITMQ_PASSWORD
+    secretName: spring-boot-secret
+    key: rabbitmq-password
+  - name: RABBITMQ_AMQP_HOST
+    secretName: spring-boot-secret
+    key: rabbitmq-amqp-host
+  - name: RABBITMQ_AMQP_PORT
+    secretName: spring-boot-secret
+    key: rabbitmq-amqp-port
+  - name: RABBITMQ_STOMP_HOST
+    secretName: spring-boot-secret
+    key: rabbitmq-stomp-host
+  - name: RABBITMQ_STOMP_PORT
+    secretName: spring-boot-secret
+    key: rabbitmq-stomp-port
+  # S3
+  - name: S3_ACCESS_KEY
+    secretName: spring-boot-secret
+    key: s3-access-key
+  - name: S3_SECRET_KEY
+    secretName: spring-boot-secret
+    key: s3-secret-key
+  - name: S3_BUCKET
+    secretName: spring-boot-secret
+    key: s3-bucket
+  - name: S3_REGION
+    secretName: spring-boot-secret
+    key: s3-region
+  # FCM
+  - name: FCM_PROJECT_ID
+    secretName: spring-boot-secret
+    key: fcm-project-id
+  - name: FCM_JSON
+    secretName: spring-boot-secret
+    key: fcm-json

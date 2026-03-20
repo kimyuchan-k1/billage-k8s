@@ -1,27 +1,27 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: village-app
+  name: billage-app
   labels:
     purpose: application
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: village-data
+  name: billage-data
   labels:
     purpose: stateful-data
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: village-edge
+  name: billage-edge
   labels:
     purpose: ingress-tls
 ---
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: village-ops
+  name: billage-ops
   labels:
     purpose: monitoring-gitops

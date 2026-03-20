@@ -1,21 +1,21 @@
-# village-app: Default Deny All
+# billage-app: Default Deny All
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: default-deny-all
-  namespace: village-app
+  namespace: billage-app
 spec:
   podSelector: {}
   policyTypes:
     - Ingress
     - Egress
 ---
-# village-data: Default Deny All
+# billage-data: Default Deny All
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
   name: default-deny-all
-  namespace: village-data
+  namespace: billage-data
 spec:
   podSelector: {}
   policyTypes:

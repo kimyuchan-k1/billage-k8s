@@ -24,14 +24,18 @@ pdb:
   enabled: true
   minAvailable: "50%"
 
-env:
-  - name: ENV
-    value: "prod"
+env: []
 
 envFromSecret:
+  - name: ENV
+    secretName: fastapi-secret
+    key: env
   - name: QDRANT_URL
     secretName: fastapi-secret
     key: qdrant-url
+  - name: QDRANT_API_KEY
+    secretName: fastapi-secret
+    key: qdrant-api-key
   - name: DB_URL
     secretName: fastapi-secret
     key: db-url
