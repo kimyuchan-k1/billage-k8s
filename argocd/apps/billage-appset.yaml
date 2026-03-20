@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:
   name: billage-apps
-  namespace: argocd
+  namespace: billage-ops
 spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
@@ -38,7 +38,7 @@ spec:
   template:
     metadata:
       name: 'billage-{{.service}}-{{.env}}'
-      namespace: argocd
+      namespace: billage-ops
       labels:
         app.kubernetes.io/part-of: billage
         environment: '{{.env}}'

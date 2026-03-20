@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: billage-infra
-  namespace: argocd
+  namespace: billage-ops
   labels:
     app.kubernetes.io/part-of: billage
     component: infrastructure

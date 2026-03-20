@@ -2,7 +2,7 @@ apiVersion: argoproj.io/v1alpha1
 kind: AppProject
 metadata:
   name: billage
-  namespace: argocd
+  namespace: billage-ops
 spec:
   description: Billage Application Project
 
