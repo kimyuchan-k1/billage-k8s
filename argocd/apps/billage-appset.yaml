@@ -7,63 +7,43 @@ spec:
   goTemplate: true
   goTemplateOptions: ["missingkey=error"]
   generators:
-    - matrix:
-        generators:
-          - list:
-              elements:
-                - chart: spring-boot
-                  service: api
-                  targetNamespace: billage-app
-                - chart: nextjs
-                  service: web
-                  targetNamespace: billage-app
-                - chart: fastapi
-                  service: ai
-                  targetNamespace: billage-app
-                - chart: rabbitmq
-                  service: mq
-                  targetNamespace: billage-data
-                - chart: qdrant
-                  service: vectordb
-                  targetNamespace: billage-data
-          - list:
-              elements:
-                - env: dev
-                  branch: develop
-                  autoSync: true
-                - env: prod
-                  branch: main
-                  autoSync: false
+    - list:
+        elements:
+          - chart: spring-boot
+            service: api
+            targetNamespace: billage-app
+          - chart: nextjs
+            service: web
+            targetNamespace: billage-app
+          - chart: fastapi
+            service: ai
+            targetNamespace: billage-app
 
   template:
     metadata:
-      name: 'billage-{{.service}}-{{.env}}'
+      name: 'billage-{{.service}}-prod'
       namespace: billage-ops
       labels:
         app.kubernetes.io/part-of: billage
-        environment: '{{.env}}'
+        environment: prod
       finalizers:
         - resources-finalizer.argocd.argoproj.io
     spec:
       project: billage
       source:
         repoURL: 'https://github.com/kimyuchan-k1/billage-k8s.git'
-        targetRevision: '{{.branch}}'
+        targetRevision: main
         path: 'charts/{{.chart}}'
         helm:
           valueFiles:
             - 'values.yaml'
-            - 'values-{{.env}}.yaml'
+            - 'values-prod.yaml'
       destination:
         server: https://kubernetes.default.svc
         namespace: '{{.targetNamespace}}'
       syncPolicy:
-        automated:
-          prune: {{.autoSync}}
-          selfHeal: {{.autoSync}}
         syncOptions:
           - CreateNamespace=false
-          - PruneLast=true
           - ApplyOutOfSyncOnly=true
         retry:
           limit: 5
