@@ -1,0 +1,39 @@
+# ALB → ingress-nginx(NodePort) 연결
+# aws-load-balancer-controller가 ALB를 자동 생성
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-nginx-public-alb
+  namespace: ingress-nginx
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: instance
+    alb.ingress.kubernetes.io/backend-protocol: HTTPS
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-northeast-2:988319239270:certificate/215d56c4-276a-408c-8e5b-5e59dc81183c
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80},{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    alb.ingress.kubernetes.io/healthcheck-path: /
+    alb.ingress.kubernetes.io/success-codes: "200-404"
+spec:
+  ingressClassName: alb
+  rules:
+    - host: v3.billages.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ingress-nginx-controller
+                port:
+                  number: 443
+    - host: api-v3.billages.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ingress-nginx-controller
+                port:
+                  number: 443
