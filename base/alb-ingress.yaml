@@ -37,3 +37,13 @@ spec:
                 name: ingress-nginx-controller
                 port:
                   number: 443
+    - host: argocd-v3.billages.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ingress-nginx-controller
+                port:
+                  number: 443
